@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">충전중 표시 앱</string>
+    <string name="charging_text">충전중</string>
+    <string name="notif_channel_name">충전 상태 알림</string>
+    <string name="notif_service_title">충전 감시 서비스 실행 중</string>
+    <string name="notif_service_text">폰이 항상 충전 상태를 감시하고 있어요</string>
+    <string name="btn_grant_overlay">다른 앱 위에 표시 권한 허용</string>
+    <string name="btn_grant_battery">배터리 최적화 무시 허용</string>
+    <string name="btn_grant_wallpaper">잠금화면 배경 변경 허용 확인</string>
+    <string name="status_all_ready">모든 권한이 설정되었습니다. 앱이 항상 백그라운드에서 동작합니다.</string>
+    <string name="status_need_permission">아래 버튼을 눌러 필요한 권한을 허용해주세요.</string>
+</resources>
