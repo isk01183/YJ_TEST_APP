@@ -11,8 +11,8 @@ android {
         applicationId "com.example.chargingapp"
         minSdk 24
         targetSdk 34
-        versionCode 2
-        versionName "2.0-ultra"
+        versionCode 6
+        versionName "2.6-ultra-v6"
     }
 
     buildTypes {
