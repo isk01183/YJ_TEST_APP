@@ -2,6 +2,8 @@ name: Build APK
 
 # main 브랜치에 push 하거나, Actions 탭에서 수동 실행(Run workflow) 하면 자동으로 빌드됩니다.
 on:
+  pull_request:
+    branches: [ main ]
   push:
     branches: [ main, master ]
   workflow_dispatch: {}
