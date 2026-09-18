@@ -106,3 +106,4 @@ ChargingApp/
 ## Ultra Magic Circle UI
 
 충전 전체화면은 이미지 파일 없이 `StellarSanctuaryView.kt`의 Android Canvas/Path/Gradient 코드로 직접 렌더링합니다. 실제 배터리 퍼센트, 온도, 상태 및 연결 방식을 표시합니다.
+
