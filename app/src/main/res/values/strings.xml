@@ -1,12 +1,14 @@
 <resources>
-    <string name="app_name">충전중 표시 앱</string>
-    <string name="charging_text">충전중</string>
-    <string name="notif_channel_name">충전 상태 알림</string>
-    <string name="notif_service_title">충전 감시 서비스 실행 중</string>
-    <string name="notif_service_text">폰이 항상 충전 상태를 감시하고 있어요</string>
-    <string name="btn_grant_overlay">다른 앱 위에 표시 권한 허용</string>
-    <string name="btn_grant_battery">배터리 최적화 무시 허용</string>
-    <string name="btn_grant_wallpaper">잠금화면 배경 변경 허용 확인</string>
-    <string name="status_all_ready">모든 권한이 설정되었습니다. 앱이 항상 백그라운드에서 동작합니다.</string>
-    <string name="status_need_permission">아래 버튼을 눌러 필요한 권한을 허용해주세요.</string>
+    <string name="app_name">별을 읽는 성역</string>
+    <string name="charging_text">충전 중</string>
+
+    <string name="service_channel_name">충전 상태 감시</string>
+    <string name="service_channel_description">충전 연결 상태를 감시하는 백그라운드 서비스</string>
+    <string name="charging_channel_name">마법진 충전 화면</string>
+    <string name="charging_channel_description">충전 연결 시 울트라 마법진 화면을 표시합니다</string>
+
+    <string name="notif_service_title">별을 읽는 성역 실행 중</string>
+    <string name="notif_service_text">충전 연결을 기다리고 있습니다</string>
+    <string name="charging_notification_title">충전 마법진 활성화</string>
+    <string name="charging_notification_text">충전 화면을 열려면 탭하세요</string>
 </resources>
