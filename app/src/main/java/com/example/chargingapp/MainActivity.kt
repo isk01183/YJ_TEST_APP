@@ -4,26 +4,23 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.view.WindowInsets
 import android.view.WindowInsetsController
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 
 /**
- * 앱을 직접 실행했을 때도 충전용 울트라 마법진을 그대로 미리 볼 수 있는 메인 화면.
- * 이미지 리소스를 사용하지 않고 StellarSanctuaryView가 전체 화면을 직접 그린다.
+ * 안정성 확인용 메인 화면.
+ *
+ * 앱을 직접 실행하면 다른 서비스/권한 요청을 시작하지 않고
+ * StellarSanctuaryView만 표시한다.
+ * 이렇게 해서 갤럭시탭에서 Canvas 렌더러 자체가 안정적인지 먼저 확인한다.
  */
 class MainActivity : AppCompatActivity() {
 
     private lateinit var magicView: StellarSanctuaryView
-
-    private val notificationPermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
     private val batteryReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -46,32 +43,17 @@ class MainActivity : AppCompatActivity() {
             IntentFilter(Intent.ACTION_BATTERY_CHANGED)
         )?.let(magicView::updateFromBatteryIntent)
 
-        registerBatteryReceiver()
-        requestNotificationPermissionIfNeeded()
-
-        // 충전 상태 감시 서비스를 시작한다.
-        ChargingForegroundService.start(this)
-    }
-
-    private fun registerBatteryReceiver() {
         val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(batteryReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+            registerReceiver(
+                batteryReceiver,
+                filter,
+                Context.RECEIVER_NOT_EXPORTED
+            )
         } else {
             @Suppress("DEPRECATION")
             registerReceiver(batteryReceiver, filter)
-        }
-    }
-
-    private fun requestNotificationPermissionIfNeeded() {
-        if (
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(
-                this,
-                android.Manifest.permission.POST_NOTIFICATIONS
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
         }
     }
 
@@ -97,6 +79,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+
         try {
             unregisterReceiver(batteryReceiver)
         } catch (_: Exception) {
