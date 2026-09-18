@@ -2,7 +2,6 @@ package com.example.chargingapp
 
 import android.content.Context
 import android.content.Intent
-import android.graphics.BlurMaskFilter
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -51,7 +50,6 @@ class StellarSanctuaryView(context: Context) : View(context) {
     private var connectionText = "연결되지 않음"
 
     init {
-        setLayerType(LAYER_TYPE_SOFTWARE, null)
         setBackgroundColor(bg)
         isClickable = true
     }
@@ -737,30 +735,45 @@ class StellarSanctuaryView(context: Context) : View(context) {
     }
 
     private fun drawGlowRing(canvas: Canvas, cx: Float, cy: Float, r: Float, color: Int, stroke: Float, alpha: Float) {
+        // Galaxy Tab 고해상도에서 BlurMaskFilter + software layer 조합을 피한다.
+        // 여러 개의 반투명 스트로크를 겹쳐 유사한 Glow를 만든다.
         p.style = Paint.Style.STROKE
-        p.maskFilter = BlurMaskFilter(maxOf(1f, stroke * 7f), BlurMaskFilter.Blur.NORMAL)
-        p.strokeWidth = stroke * 4.5f
-        p.color = withAlpha(color, (alpha * 45).toInt())
+
+        p.strokeWidth = maxOf(1f, stroke * 7.5f)
+        p.color = withAlpha(color, (alpha * 18).toInt())
         canvas.drawCircle(cx, cy, r, p)
-        p.maskFilter = null
-        p.strokeWidth = stroke * 2.3f
-        p.color = withAlpha(color, (alpha * 70).toInt())
+
+        p.strokeWidth = maxOf(1f, stroke * 4.5f)
+        p.color = withAlpha(color, (alpha * 30).toInt())
         canvas.drawCircle(cx, cy, r, p)
-        p.strokeWidth = stroke
+
+        p.strokeWidth = maxOf(1f, stroke * 2.4f)
+        p.color = withAlpha(color, (alpha * 62).toInt())
+        canvas.drawCircle(cx, cy, r, p)
+
+        p.strokeWidth = maxOf(0.8f, stroke)
         p.color = withAlpha(color, (alpha * 255).toInt())
         canvas.drawCircle(cx, cy, r, p)
     }
 
     private fun drawGlowDot(canvas: Canvas, x: Float, y: Float, rr: Float, color: Int, alpha: Float) {
+        // BlurMaskFilter 대신 다층 원으로 Glow를 구성해 메모리 할당을 최소화한다.
         p.style = Paint.Style.FILL
-        p.maskFilter = BlurMaskFilter(maxOf(1f, rr * 2.8f), BlurMaskFilter.Blur.NORMAL)
-        p.color = withAlpha(color, (alpha * 100).toInt())
-        canvas.drawCircle(x, y, rr * 1.7f, p)
-        p.maskFilter = null
+
+        p.color = withAlpha(color, (alpha * 20).toInt())
+        canvas.drawCircle(x, y, rr * 4.0f, p)
+
+        p.color = withAlpha(color, (alpha * 42).toInt())
+        canvas.drawCircle(x, y, rr * 2.6f, p)
+
+        p.color = withAlpha(color, (alpha * 95).toInt())
+        canvas.drawCircle(x, y, rr * 1.65f, p)
+
         p.color = withAlpha(color, (alpha * 255).toInt())
         canvas.drawCircle(x, y, rr, p)
+
         p.color = withAlpha(white, (alpha * 245).toInt())
-        canvas.drawCircle(x, y, rr * 0.28f, p)
+        canvas.drawCircle(x, y, maxOf(0.5f, rr * 0.28f), p)
     }
 
     private fun drawRegularPolygon(
