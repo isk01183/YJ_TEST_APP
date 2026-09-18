@@ -8,13 +8,19 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Color
 import android.os.Bundle
-import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 
+/**
+ * Ultra V6 launcher.
+ *
+ * Known-Good Runtime을 유지하면서 앱 실행 즉시 마법진을 표시한다.
+ * 서비스/BootReceiver/Full-screen notification은 사용하지 않는다.
+ * 런타임 예외가 발생하면 다음 실행 때 저장된 crash report를 보여준다.
+ */
 class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -25,62 +31,8 @@ class MainActivity : Activity() {
         if (previousCrash != null) {
             showCrashReport(previousCrash)
         } else {
-            showSafeScreen()
+            runMagicRenderer()
         }
-    }
-
-    private fun showSafeScreen() {
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_HORIZONTAL
-            setPadding(dp(28), dp(48), dp(28), dp(28))
-            setBackgroundColor(Color.rgb(2, 4, 8))
-        }
-
-        root.addView(TextView(this).apply {
-            text = "GALAXY TAB DIAGNOSTIC"
-            setTextColor(Color.rgb(255, 239, 188))
-            textSize = 13f
-            gravity = Gravity.CENTER
-        }, matchWrap())
-
-        root.addView(TextView(this).apply {
-            text = "별을 읽는 성역"
-            setTextColor(Color.rgb(246, 226, 177))
-            textSize = 30f
-            gravity = Gravity.CENTER
-            setPadding(0, dp(24), 0, dp(8))
-        }, matchWrap())
-
-        root.addView(TextView(this).apply {
-            text = "1단계 안전 화면\n\n이 화면이 유지되면 앱 기본 실행 계층은 정상입니다.\n아래 버튼을 눌러 마법진 렌더러만 따로 실행하세요."
-            setTextColor(Color.WHITE)
-            textSize = 16f
-            gravity = Gravity.CENTER
-            setLineSpacing(0f, 1.35f)
-            setPadding(0, dp(24), 0, dp(32))
-        }, matchWrap())
-
-        root.addView(Button(this).apply {
-            text = "마법진 렌더러 테스트"
-            setOnClickListener {
-                CrashReportStore.clear(this@MainActivity)
-                runMagicRenderer()
-            }
-        }, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            dp(58)
-        ))
-
-        root.addView(TextView(this).apply {
-            text = "버전 2.1-diagnostic\n서비스 · 알림 · BootReceiver 미사용"
-            setTextColor(Color.rgb(160, 170, 180))
-            textSize = 12f
-            gravity = Gravity.CENTER
-            setPadding(0, dp(28), 0, 0)
-        }, matchWrap())
-
-        setContentView(root)
     }
 
     private fun runMagicRenderer() {
@@ -124,10 +76,10 @@ class MainActivity : Activity() {
         ))
 
         column.addView(Button(this).apply {
-            text = "로그 지우고 안전 화면으로 돌아가기"
+            text = "로그 삭제 후 마법진 다시 실행"
             setOnClickListener {
                 CrashReportStore.clear(this@MainActivity)
-                showSafeScreen()
+                runMagicRenderer()
             }
         }, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
