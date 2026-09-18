@@ -92,7 +92,7 @@ class StellarSanctuaryView(context: Context) : View(context) {
         drawHeader(canvas, w, h)
 
         val cx = w * 0.5f
-        val cy = h * 0.49f
+        val cy = h * 0.455f
         val r = min(w * 0.46f, h * 0.31f)
 
         drawCircleSystem(canvas, cx, cy, r)
@@ -143,12 +143,14 @@ class StellarSanctuaryView(context: Context) : View(context) {
         }
 
         // 참고 이미지처럼 화면 가장자리에 은하 팔과 별자리 연결선을 추가한다.
-        drawProceduralGalaxy(canvas, w * 0.11f, h * 0.17f, w * 0.16f, 18f, false)
-        drawProceduralGalaxy(canvas, w * 0.88f, h * 0.23f, w * 0.13f, 202f, true)
-        drawProceduralGalaxy(canvas, w * 0.16f, h * 0.76f, w * 0.12f, 120f, false)
-        drawProceduralGalaxy(canvas, w * 0.87f, h * 0.74f, w * 0.11f, 300f, true)
+        drawProceduralGalaxy(canvas, w * 0.08f, h * 0.15f, w * 0.24f, 18f, false)
+        drawProceduralGalaxy(canvas, w * 0.91f, h * 0.20f, w * 0.21f, 202f, true)
+        drawProceduralGalaxy(canvas, w * 0.10f, h * 0.78f, w * 0.18f, 120f, false)
+        drawProceduralGalaxy(canvas, w * 0.92f, h * 0.76f, w * 0.18f, 300f, true)
         drawConstellationBackground(canvas, w, h)
         drawCelestialDust(canvas, w, h)
+        drawReferenceStarFlares(canvas, w, h)
+        drawCrescentPlanets(canvas, w, h)
     }
 
     private fun drawCelestialDust(canvas: Canvas, w: Float, h: Float) {
@@ -184,8 +186,8 @@ class StellarSanctuaryView(context: Context) : View(context) {
         p.shader = RadialGradient(
             gx, gy, size * 0.42f,
             intArrayOf(
-                Color.argb(42, 225, 240, 255),
-                Color.argb(18, 90, 165, 230),
+                Color.argb(72, 225, 240, 255),
+                Color.argb(32, 90, 165, 230),
                 Color.TRANSPARENT
             ),
             floatArrayOf(0f, 0.38f, 1f),
@@ -196,8 +198,8 @@ class StellarSanctuaryView(context: Context) : View(context) {
 
         for (arm in 0 until 3) {
             var previous: PointF? = null
-            for (i in 0 until 78) {
-                val t = i / 77f
+            for (i in 0 until 96) {
+                val t = i / 95f
                 val angle = rotation + arm * 120f + t * 520f
                 val wave = (sin((i + arm * 11) * 0.73).toFloat()) * size * 0.020f
                 val radius = size * (0.045f + 0.94f * t) + wave
@@ -271,9 +273,9 @@ class StellarSanctuaryView(context: Context) : View(context) {
         drawStarBurst(canvas, cx, h * 0.055f, w * 0.018f, goldBright, 0.95f)
 
         textPaint.color = goldBright
-        textPaint.textSize = w * 0.043f
+        textPaint.textSize = w * 0.048f
         textPaint.setShadowLayer(w * 0.014f, 0f, 0f, Color.argb(135, 255, 225, 150))
-        canvas.drawText("별을 읽는 성역", cx, h * 0.12f, textPaint)
+        canvas.drawText("별을 읽는 성역", cx, h * 0.118f, textPaint)
         textPaint.clearShadowLayer()
 
         p.style = Paint.Style.STROKE
@@ -282,9 +284,9 @@ class StellarSanctuaryView(context: Context) : View(context) {
         canvas.drawLine(w * 0.16f, h * 0.145f, w * 0.84f, h * 0.145f, p)
         drawDiamond(canvas, cx, h * 0.145f, w * 0.009f, goldBright, 0.9f)
 
-        textPaint.textSize = w * 0.023f
+        textPaint.textSize = w * 0.025f
         textPaint.color = Color.argb(220, 220, 202, 160)
-        canvas.drawText("지혜는 내일을 비춘다.", cx, h * 0.178f, textPaint)
+        canvas.drawText("지혜는 내일을 비춘다.", cx, h * 0.176f, textPaint)
 
         drawStarBurst(canvas, w * 0.25f, h * 0.145f, w * 0.006f, gold, 0.65f)
         drawStarBurst(canvas, w * 0.75f, h * 0.145f, w * 0.006f, gold, 0.65f)
@@ -308,9 +310,9 @@ class StellarSanctuaryView(context: Context) : View(context) {
 
         // 8중 광륜
         drawGlowRing(canvas, cx, cy, r * 1.000f, goldBright, r * 0.0045f, 1.00f)
-        drawGlowRing(canvas, cx, cy, r * 0.966f, goldBright, r * 0.0025f, 0.74f)
+        drawGlowRing(canvas, cx, cy, r * 0.966f, goldBright, r * 0.0030f, 0.88f)
         drawGlowRing(canvas, cx, cy, r * 0.922f, cyanBright, r * 0.0040f, 0.96f)
-        drawGlowRing(canvas, cx, cy, r * 0.875f, cyanBright, r * 0.0020f, 0.50f)
+        drawGlowRing(canvas, cx, cy, r * 0.875f, cyanBright, r * 0.0028f, 0.72f)
         drawGlowRing(canvas, cx, cy, r * 0.810f, gold, r * 0.0026f, 0.50f)
         drawGlowRing(canvas, cx, cy, r * 0.742f, cyan, r * 0.0022f, 0.45f)
         drawGlowRing(canvas, cx, cy, r * 0.664f, gold, r * 0.0018f, 0.28f)
@@ -369,17 +371,23 @@ class StellarSanctuaryView(context: Context) : View(context) {
         }
 
         drawOuterCrownSpikes(canvas, cx, cy, r)
+        drawReferenceCardinalFlares(canvas, cx, cy, r)
+        drawReferenceCrescentMarkers(canvas, cx, cy, r)
+        drawMajorRuneBand(canvas, cx, cy, r * 0.935f, 40)
         drawAstrolabeMedallions(canvas, cx, cy, r)
         drawDecorativeArcs(canvas, cx, cy, r)
         drawLunarMarkers(canvas, cx, cy, r)
         drawConstellationMesh(canvas, cx, cy, r)
+        drawReferenceSacredGeometry(canvas, cx, cy, r)
         drawCelestialPetalLattice(canvas, cx, cy, r)
         drawAuxiliarySigils(canvas, cx, cy, r)
         drawMicroSigils(canvas, cx, cy, r)
         drawInnerInscriptionHalo(canvas, cx, cy, r)
+        drawReferenceOrbitHalo(canvas, cx, cy, r)
         drawOrbits(canvas, cx, cy, r)
         drawCore(canvas, cx, cy, r)
         drawCrystalCoreOverlay(canvas, cx, cy, r)
+        drawReferenceCoreHalo(canvas, cx, cy, r)
     }
 
     private fun drawTickRing(canvas: Canvas, cx: Float, cy: Float, radius: Float, length: Float, count: Int, majorEvery: Int) {
@@ -454,6 +462,223 @@ class StellarSanctuaryView(context: Context) : View(context) {
                 }
             }
             canvas.restore()
+        }
+    }
+
+    private fun drawReferenceStarFlares(canvas: Canvas, w: Float, h: Float) {
+        val stars = arrayOf(
+            floatArrayOf(0.24f, 0.05f, 0.010f),
+            floatArrayOf(0.81f, 0.085f, 0.008f),
+            floatArrayOf(0.10f, 0.23f, 0.007f),
+            floatArrayOf(0.93f, 0.28f, 0.007f),
+            floatArrayOf(0.06f, 0.69f, 0.008f),
+            floatArrayOf(0.89f, 0.67f, 0.009f),
+            floatArrayOf(0.18f, 0.88f, 0.006f),
+            floatArrayOf(0.78f, 0.89f, 0.006f)
+        )
+        for ((index, item) in stars.withIndex()) {
+            val x = w * item[0]
+            val y = h * item[1]
+            val size = w * item[2]
+            drawStarBurst(canvas, x, y, size, if (index % 3 == 0) goldBright else white, 0.90f)
+            drawGlowDot(canvas, x, y, maxOf(1f, size * 0.08f), goldBright, 0.72f)
+        }
+    }
+
+    private fun drawCrescentPlanets(canvas: Canvas, w: Float, h: Float) {
+        fun planet(x: Float, y: Float, radius: Float, rightLight: Boolean) {
+            p.style = Paint.Style.FILL
+            p.color = Color.argb(22, 90, 150, 220)
+            canvas.drawCircle(x, y, radius * 1.22f, p)
+
+            p.color = Color.rgb(5, 10, 16)
+            canvas.drawCircle(x, y, radius, p)
+
+            p.style = Paint.Style.STROKE
+            p.strokeWidth = maxOf(1f, radius * 0.07f)
+            p.color = withAlpha(cyan, 95)
+            canvas.drawCircle(x, y, radius, p)
+
+            val offset = if (rightLight) -radius * 0.23f else radius * 0.23f
+            val rect = RectF(
+                x - radius * 0.92f + offset,
+                y - radius * 0.92f,
+                x + radius * 0.92f + offset,
+                y + radius * 0.92f
+            )
+            p.strokeWidth = maxOf(1.1f, radius * 0.09f)
+            p.color = withAlpha(goldBright, 150)
+            canvas.drawArc(rect, if (rightLight) -74f else 106f, 148f, false, p)
+        }
+
+        planet(w * 0.055f, h * 0.70f, w * 0.034f, true)
+        planet(w * 0.945f, h * 0.72f, w * 0.036f, false)
+    }
+
+    private fun drawReferenceCardinalFlares(canvas: Canvas, cx: Float, cy: Float, r: Float) {
+        for (angle in floatArrayOf(0f, 90f, 180f, 270f)) {
+            val q = polar(cx, cy, r * 1.02f, angle)
+            val s = r * 0.055f
+
+            p.style = Paint.Style.STROKE
+            p.strokeWidth = maxOf(1.2f, r * 0.0030f)
+            p.color = withAlpha(goldBright, 230)
+
+            val a1 = polar(q.x, q.y, s, 0f)
+            val a2 = polar(q.x, q.y, s, 90f)
+            val a3 = polar(q.x, q.y, s, 180f)
+            val a4 = polar(q.x, q.y, s, 270f)
+
+            path.reset()
+            path.moveTo(a1.x, a1.y)
+            path.lineTo(q.x + (a2.x - q.x) * 0.30f, q.y + (a2.y - q.y) * 0.30f)
+            path.lineTo(a3.x, a3.y)
+            path.lineTo(q.x + (a4.x - q.x) * 0.30f, q.y + (a4.y - q.y) * 0.30f)
+            path.close()
+            canvas.drawPath(path, p)
+
+            drawGlowDot(canvas, q.x, q.y, r * 0.010f, white, 0.96f)
+            p.strokeWidth = maxOf(0.9f, r * 0.0015f)
+            p.color = withAlpha(goldBright, 110)
+            canvas.drawCircle(q.x, q.y, r * 0.027f, p)
+        }
+    }
+
+    private fun drawReferenceCrescentMarkers(canvas: Canvas, cx: Float, cy: Float, r: Float) {
+        val angles = floatArrayOf(0f, 90f, 180f, 270f)
+        for ((index, angle) in angles.withIndex()) {
+            val q = polar(cx, cy, r * 0.825f, angle)
+            val rr = r * 0.035f
+
+            p.style = Paint.Style.FILL
+            p.color = withAlpha(goldBright, 220)
+            canvas.drawCircle(q.x, q.y, rr, p)
+
+            p.color = bg
+            val shift = if (index % 2 == 0) rr * 0.42f else -rr * 0.42f
+            canvas.drawCircle(q.x + shift, q.y, rr * 0.88f, p)
+
+            p.style = Paint.Style.STROKE
+            p.strokeWidth = maxOf(0.9f, r * 0.0018f)
+            p.color = withAlpha(goldBright, 170)
+            canvas.drawCircle(q.x, q.y, rr, p)
+        }
+    }
+
+    private fun drawMajorRuneBand(canvas: Canvas, cx: Float, cy: Float, radius: Float, count: Int) {
+        for (i in 0 until count) {
+            val angle = i * 360f / count
+            val q = polar(cx, cy, radius, angle)
+            val size = radius * 0.0175f
+
+            canvas.save()
+            canvas.rotate(angle, q.x, q.y)
+            p.style = Paint.Style.STROKE
+            p.strokeWidth = maxOf(1f, radius * 0.0027f)
+            p.color = withAlpha(goldBright, 210)
+
+            when (i % 8) {
+                0 -> {
+                    canvas.drawLine(q.x - size, q.y, q.x + size, q.y, p)
+                    canvas.drawLine(q.x, q.y - size, q.x, q.y + size, p)
+                }
+                1 -> drawDiamond(canvas, q.x, q.y, size, goldBright, 0.85f)
+                2 -> drawRegularPolygon(canvas, q.x, q.y, size, 3, angle, goldBright, maxOf(1f, radius * 0.0025f), 0.84f)
+                3 -> drawRegularPolygon(canvas, q.x, q.y, size, 6, angle, goldBright, maxOf(1f, radius * 0.0025f), 0.82f)
+                4 -> {
+                    canvas.drawCircle(q.x, q.y, size * 0.72f, p)
+                    canvas.drawLine(q.x - size * 0.7f, q.y, q.x + size * 0.7f, q.y, p)
+                }
+                5 -> {
+                    path.reset()
+                    path.moveTo(q.x - size, q.y + size * 0.7f)
+                    path.lineTo(q.x, q.y - size)
+                    path.lineTo(q.x + size, q.y + size * 0.7f)
+                    canvas.drawPath(path, p)
+                }
+                6 -> {
+                    canvas.drawLine(q.x - size, q.y - size, q.x + size, q.y + size, p)
+                    canvas.drawLine(q.x + size, q.y - size, q.x - size, q.y + size, p)
+                }
+                else -> drawStar(canvas, q.x, q.y, size, size * 0.42f, 4, 45f, goldBright, maxOf(1f, radius * 0.0024f), 0.80f)
+            }
+            canvas.restore()
+        }
+    }
+
+    private fun drawReferenceSacredGeometry(canvas: Canvas, cx: Float, cy: Float, r: Float) {
+        // Bright gold sacred-star structure, similar to the supplied reference.
+        drawStar(canvas, cx, cy, r * 0.655f, r * 0.255f, 6, 0f, goldBright, maxOf(1.2f, r * 0.0042f), 0.74f)
+        drawStar(canvas, cx, cy, r * 0.615f, r * 0.305f, 8, 22.5f, gold, maxOf(1.0f, r * 0.0030f), 0.54f)
+
+        val outer = ArrayList<PointF>()
+        for (i in 0 until 12) outer += polar(cx, cy, r * 0.61f, i * 30f)
+
+        p.style = Paint.Style.STROKE
+        p.strokeWidth = maxOf(0.9f, r * 0.0022f)
+        for (i in outer.indices) {
+            val a = outer[i]
+            val b = outer[(i + 5) % outer.size]
+            p.color = withAlpha(if (i % 2 == 0) goldBright else cyanBright, if (i % 2 == 0) 90 else 72)
+            canvas.drawLine(a.x, a.y, b.x, b.y, p)
+        }
+
+        for (i in 0 until 12) {
+            val q = polar(cx, cy, r * 0.59f, i * 30f)
+            drawGlowDot(canvas, q.x, q.y, r * if (i % 3 == 0) 0.011f else 0.006f,
+                if (i % 2 == 0) goldBright else cyanBright,
+                if (i % 3 == 0) 0.90f else 0.64f)
+        }
+    }
+
+    private fun drawReferenceOrbitHalo(canvas: Canvas, cx: Float, cy: Float, r: Float) {
+        val rx = r * 0.61f
+        val ry = r * 0.245f
+        val rect = RectF(cx - rx, cy - ry, cx + rx, cy + ry)
+
+        for (rot in floatArrayOf(0f, 45f, 90f, 135f)) {
+            canvas.save()
+            canvas.rotate(rot, cx, cy)
+
+            p.style = Paint.Style.STROKE
+            p.strokeWidth = maxOf(1.0f, r * 0.0048f)
+            p.color = withAlpha(cyanBright, 42)
+            canvas.drawOval(rect, p)
+
+            p.strokeWidth = maxOf(0.9f, r * 0.0027f)
+            p.color = withAlpha(cyanBright, 205)
+            canvas.drawOval(rect, p)
+
+            canvas.restore()
+        }
+
+        for (i in 0 until 8) {
+            val angle = i * 45f
+            val q = polar(cx, cy, r * 0.61f, angle)
+            drawGlowDot(canvas, q.x, q.y, r * 0.012f, if (i % 2 == 0) cyanBright else goldBright, 0.95f)
+        }
+    }
+
+    private fun drawReferenceCoreHalo(canvas: Canvas, cx: Float, cy: Float, r: Float) {
+        p.style = Paint.Style.STROKE
+
+        val rings = floatArrayOf(0.215f, 0.232f, 0.250f)
+        for ((index, scale) in rings.withIndex()) {
+            p.strokeWidth = maxOf(0.9f, r * if (index == 0) 0.0032f else 0.0018f)
+            p.color = withAlpha(if (index % 2 == 0) goldBright else cyanBright, if (index == 0) 130 else 75)
+            canvas.drawCircle(cx, cy, r * scale, p)
+        }
+
+        for (i in 0 until 24) {
+            val q = polar(cx, cy, r * 0.267f, i * 15f)
+            drawGlowDot(
+                canvas,
+                q.x,
+                q.y,
+                r * if (i % 6 == 0) 0.0052f else 0.0026f,
+                if (i % 2 == 0) goldBright else cyanBright,
+                if (i % 6 == 0) 0.68f else 0.34f
+            )
         }
     }
 
@@ -825,10 +1050,10 @@ class StellarSanctuaryView(context: Context) : View(context) {
         canvas.drawCircle(cx, cy, r * 0.205f, p)
 
         textPaint.color = goldBright
-        textPaint.textSize = r * 0.20f
+        textPaint.textSize = r * 0.225f
         textPaint.typeface = Typeface.create("sans", Typeface.NORMAL)
         textPaint.setShadowLayer(r * 0.035f, 0f, 0f, Color.argb(145, 255, 230, 160))
-        canvas.drawText(batteryPercent.toString(), cx - r * 0.025f, cy + r * 0.025f, textPaint)
+        canvas.drawText(batteryPercent.toString(), cx - r * 0.020f, cy + r * 0.030f, textPaint)
         textPaint.clearShadowLayer()
         textPaint.textSize = r * 0.070f
         canvas.drawText("%", cx + r * 0.165f, cy + r * 0.035f, textPaint)
@@ -850,7 +1075,7 @@ class StellarSanctuaryView(context: Context) : View(context) {
 
         p.style = Paint.Style.STROKE
         p.strokeWidth = 1.2f
-        p.color = Color.argb(95, 218, 190, 120)
+        p.color = Color.argb(135, 230, 205, 145)
         canvas.drawLine(w * 0.16f, y, w * 0.84f, y, p)
         drawDiamond(canvas, cx, y, w * 0.008f, goldBright, 0.85f)
 
@@ -875,9 +1100,9 @@ class StellarSanctuaryView(context: Context) : View(context) {
 
     private fun drawInfo(canvas: Canvas, x: Float, y: Float, value: String, label: String, w: Float) {
         textPaint.color = Color.rgb(255, 241, 210)
-        textPaint.textSize = w * if (value.length > 6) 0.031f else 0.039f
+        textPaint.textSize = w * if (value.length > 6) 0.033f else 0.041f
         canvas.drawText(value, x, y, textPaint)
-        textPaint.color = Color.rgb(186, 170, 139)
+        textPaint.color = Color.rgb(205, 188, 153)
         textPaint.textSize = w * 0.022f
         canvas.drawText(label, x, y + w * 0.055f, textPaint)
     }
