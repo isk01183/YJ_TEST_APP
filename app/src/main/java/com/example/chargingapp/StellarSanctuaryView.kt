@@ -186,10 +186,20 @@ class StellarSanctuaryView(context: Context) : View(context) {
         val cy = h * 0.455f
         val r = min(w * 0.46f, h * 0.31f)
 
-        val outerRuneRotation = AnimationMath.wrapDegrees(elapsedSeconds * 2.4f)
-        val innerRuneRotation = -AnimationMath.wrapDegrees(elapsedSeconds * 3.6f)
-        val orbitRotation = AnimationMath.wrapDegrees(elapsedSeconds * 7.5f)
-        val pulse = AnimationMath.pulse01(elapsedSeconds, 0.34f, 0.08f)
+        val outerRuneRotation =
+            if (AnimationLayerPolicy.animateOuterRuneBand) {
+                AnimationMath.wrapDegrees(elapsedSeconds * 2.4f)
+            } else {
+                0f
+            }
+
+        val innerRuneRotation =
+            if (AnimationLayerPolicy.animateInnerRuneBand) {
+                -AnimationMath.wrapDegrees(elapsedSeconds * 3.6f)
+            } else {
+                0f
+            }
+
         val shimmer = AnimationMath.pulse01(elapsedSeconds, 0.82f, 0.31f)
 
         dynamicGlowMultiplier = 0.84f + shimmer * 0.16f
@@ -200,17 +210,14 @@ class StellarSanctuaryView(context: Context) : View(context) {
             cy = cy,
             r = r,
             outerRuneRotation = outerRuneRotation,
-            innerRuneRotation = innerRuneRotation,
-            orbitRotation = orbitRotation,
-            pulse = pulse
+            innerRuneRotation = innerRuneRotation
         )
         drawCenterPanel(
             canvas,
             cx,
             cy,
             r,
-            displayedBatteryPercent,
-            pulse
+            displayedBatteryPercent
         )
 
         dynamicGlowMultiplier = 1f
@@ -420,9 +427,7 @@ class StellarSanctuaryView(context: Context) : View(context) {
         cy: Float,
         r: Float,
         outerRuneRotation: Float,
-        innerRuneRotation: Float,
-        orbitRotation: Float,
-        pulse: Float
+        innerRuneRotation: Float
     ) {
         // 중심 원 전체를 감싸는 광원층. 기존 선 구조를 덮지 않도록 낮은 알파로만 사용한다.
         p.style = Paint.Style.FILL
@@ -526,32 +531,21 @@ class StellarSanctuaryView(context: Context) : View(context) {
         drawConstellationMesh(canvas, cx, cy, r)
         drawReferenceSacredGeometry(canvas, cx, cy, r)
 
-        canvas.save()
-        canvas.rotate(innerRuneRotation * 0.42f, cx, cy)
+        // Layer 6: 신성한 기하학 구조는 고정.
         drawCelestialPetalLattice(canvas, cx, cy, r)
-        canvas.restore()
 
         drawAuxiliarySigils(canvas, cx, cy, r)
         drawMicroSigils(canvas, cx, cy, r)
         drawInnerInscriptionHalo(canvas, cx, cy, r)
 
-        canvas.save()
-        canvas.rotate(orbitRotation, cx, cy)
+        // Layer 7: 궤도 곡선과 노드는 회전하지 않는다.
         drawReferenceOrbitHalo(canvas, cx, cy, r)
-        canvas.restore()
-
-        canvas.save()
-        canvas.rotate(-orbitRotation * 0.73f, cx, cy)
         drawOrbits(canvas, cx, cy, r)
-        canvas.restore()
 
-        val coreScale = 0.992f + pulse * 0.016f
-        canvas.save()
-        canvas.scale(coreScale, coreScale, cx, cy)
+        // Layer 8: 중앙 코어는 확대/축소 맥동 없이 고정한다.
         drawCore(canvas, cx, cy, r)
         drawCrystalCoreOverlay(canvas, cx, cy, r)
         drawReferenceCoreHalo(canvas, cx, cy, r)
-        canvas.restore()
     }
 
     private fun drawTickRing(canvas: Canvas, cx: Float, cy: Float, radius: Float, length: Float, count: Int, majorEvery: Int) {
@@ -1213,19 +1207,18 @@ class StellarSanctuaryView(context: Context) : View(context) {
         cx: Float,
         cy: Float,
         r: Float,
-        displayPercent: Float,
-        pulse: Float
+        displayPercent: Float
     ) {
-        val panelRadius = r * (0.203f + pulse * 0.003f)
+        val panelRadius = r * 0.205f
 
         drawGlowRing(
             canvas,
             cx,
             cy,
             panelRadius * 1.055f,
-            if (pulse > 0.5f) goldBright else cyanBright,
+            cyanBright,
             r * 0.0014f,
-            0.20f + pulse * 0.16f
+            0.28f
         )
 
         p.style = Paint.Style.FILL
