@@ -529,23 +529,28 @@ class StellarSanctuaryView(context: Context) : View(context) {
         drawDecorativeArcs(canvas, cx, cy, r)
         drawLunarMarkers(canvas, cx, cy, r)
         drawConstellationMesh(canvas, cx, cy, r)
+        val animatedGlow = dynamicGlowMultiplier
+        dynamicGlowMultiplier = 1f
+
         drawReferenceSacredGeometry(canvas, cx, cy, r)
 
-        // Layer 6: 신성한 기하학 구조는 고정.
+        // Layer 6: 분해도 기반 신성한 기하학은 완전 고정.
         drawCelestialPetalLattice(canvas, cx, cy, r)
 
         drawAuxiliarySigils(canvas, cx, cy, r)
         drawMicroSigils(canvas, cx, cy, r)
         drawInnerInscriptionHalo(canvas, cx, cy, r)
 
-        // Layer 7: 궤도 곡선과 노드는 회전하지 않는다.
+        // Layer 7: 네 개의 청백 궤도와 16개 노드는 완전 고정.
         drawReferenceOrbitHalo(canvas, cx, cy, r)
         drawOrbits(canvas, cx, cy, r)
 
-        // Layer 8: 중앙 코어는 확대/축소 맥동 없이 고정한다.
+        // Layer 8: 중앙 코어도 고정된 광량으로 유지.
         drawCore(canvas, cx, cy, r)
         drawCrystalCoreOverlay(canvas, cx, cy, r)
         drawReferenceCoreHalo(canvas, cx, cy, r)
+
+        dynamicGlowMultiplier = animatedGlow
     }
 
     private fun drawTickRing(canvas: Canvas, cx: Float, cy: Float, radius: Float, length: Float, count: Int, majorEvery: Int) {
@@ -765,55 +770,206 @@ class StellarSanctuaryView(context: Context) : View(context) {
     }
 
     private fun drawReferenceSacredGeometry(canvas: Canvas, cx: Float, cy: Float, r: Float) {
-        // Bright gold sacred-star structure, similar to the supplied reference.
-        drawStar(canvas, cx, cy, r * 0.655f, r * 0.255f, 6, 0f, goldBright, maxOf(1.2f, r * 0.0042f), 0.74f)
-        drawStar(canvas, cx, cy, r * 0.615f, r * 0.305f, 8, 22.5f, gold, maxOf(1.0f, r * 0.0030f), 0.54f)
+        // Layer 6 — 분해도 기준 신성한 기하학 구조.
+        // 모든 요소는 고정되어 있으며 골드 메인선 / 옅은 보조선 / 소량의 시안 강조로 깊이를 만든다.
 
-        val outer = ArrayList<PointF>()
-        for (i in 0 until 12) outer += polar(cx, cy, r * 0.61f, i * 30f)
-
-        p.style = Paint.Style.STROKE
-        p.strokeWidth = maxOf(0.9f, r * 0.0022f)
-        for (i in outer.indices) {
-            val a = outer[i]
-            val b = outer[(i + 5) % outer.size]
-            p.color = withAlpha(if (i % 2 == 0) goldBright else cyanBright, if (i % 2 == 0) 90 else 72)
-            canvas.drawLine(a.x, a.y, b.x, b.y, p)
+        // 1) 동심 가이드 링
+        val guideRadii = floatArrayOf(0.64f, 0.585f, 0.515f, 0.435f, 0.345f, 0.265f)
+        for ((index, scale) in guideRadii.withIndex()) {
+            p.style = Paint.Style.STROKE
+            p.strokeWidth = maxOf(0.65f, r * if (index < 2) 0.0017f else 0.0010f)
+            p.color = withAlpha(
+                if (index % 2 == 0) goldBright else gold,
+                if (index < 2) 72 else 38
+            )
+            canvas.drawCircle(cx, cy, r * scale, p)
         }
 
-        for (i in 0 until 12) {
-            val q = polar(cx, cy, r * 0.59f, i * 30f)
-            drawGlowDot(canvas, q.x, q.y, r * if (i % 3 == 0) 0.011f else 0.006f,
-                if (i % 2 == 0) goldBright else cyanBright,
-                if (i % 3 == 0) 0.90f else 0.64f)
-        }
-    }
-
-    private fun drawReferenceOrbitHalo(canvas: Canvas, cx: Float, cy: Float, r: Float) {
-        val rx = r * 0.61f
-        val ry = r * 0.245f
-        val rect = RectF(cx - rx, cy - ry, cx + rx, cy + ry)
-
-        for (rot in floatArrayOf(0f, 45f, 90f, 135f)) {
+        // 2) 분해도에서 보이는 얇은 타원 가이드 3겹
+        val ellipse = RectF(
+            cx - r * 0.60f,
+            cy - r * 0.205f,
+            cx + r * 0.60f,
+            cy + r * 0.205f
+        )
+        for ((index, rotation) in CelestialLayerSpec.guideEllipseRotations.withIndex()) {
             canvas.save()
-            canvas.rotate(rot, cx, cy)
+            canvas.rotate(rotation, cx, cy)
 
             p.style = Paint.Style.STROKE
-            p.strokeWidth = maxOf(1.0f, r * 0.0048f)
-            p.color = withAlpha(cyanBright, 42)
-            canvas.drawOval(rect, p)
-
-            p.strokeWidth = maxOf(0.9f, r * 0.0027f)
-            p.color = withAlpha(cyanBright, 205)
-            canvas.drawOval(rect, p)
-
+            p.strokeWidth = maxOf(0.6f, r * 0.00115f)
+            p.color = withAlpha(
+                if (index == 1) cyan else gold,
+                if (index == 1) 46 else 34
+            )
+            canvas.drawOval(ellipse, p)
             canvas.restore()
         }
 
-        for (i in 0 until 8) {
-            val angle = i * 45f
-            val q = polar(cx, cy, r * 0.61f, angle)
-            drawGlowDot(canvas, q.x, q.y, r * 0.012f, if (i % 2 == 0) cyanBright else goldBright, 0.95f)
+        // 3) 메인 성스러운 별 구조
+        drawStar(
+            canvas, cx, cy,
+            r * 0.635f, r * 0.255f,
+            6, 0f,
+            goldBright, maxOf(1.4f, r * 0.0038f), 0.84f
+        )
+        drawStar(
+            canvas, cx, cy,
+            r * 0.585f, r * 0.315f,
+            8, 22.5f,
+            gold, maxOf(1.0f, r * 0.0026f), 0.58f
+        )
+        drawStar(
+            canvas, cx, cy,
+            r * 0.505f, r * 0.225f,
+            12, 0f,
+            goldBright, maxOf(0.8f, r * 0.0018f), 0.40f
+        )
+
+        // 4) 6/8/12/16각 보조 프레임
+        val polygonScales = floatArrayOf(0.555f, 0.485f, 0.405f, 0.325f)
+        for (i in CelestialLayerSpec.sacredPolygonSides.indices) {
+            val sides = CelestialLayerSpec.sacredPolygonSides[i]
+            drawRegularPolygon(
+                canvas,
+                cx,
+                cy,
+                r * polygonScales[i],
+                sides,
+                if (i % 2 == 0) 0f else 360f / (sides * 2f),
+                if (i % 2 == 0) goldBright else cyan,
+                maxOf(0.65f, r * (0.0018f - i * 0.00018f)),
+                if (i < 2) 0.46f else 0.30f
+            )
+        }
+
+        // 5) 중심에서 퍼지는 32방향 방사선
+        for (i in 0 until CelestialLayerSpec.sacredRayCount) {
+            val angle = i * 360f / CelestialLayerSpec.sacredRayCount
+            val inner = polar(cx, cy, r * 0.115f, angle)
+            val outer = polar(
+                cx,
+                cy,
+                r * if (i % 4 == 0) 0.625f else if (i % 2 == 0) 0.575f else 0.525f,
+                angle
+            )
+
+            p.style = Paint.Style.STROKE
+            p.strokeWidth = maxOf(0.55f, r * if (i % 4 == 0) 0.00155f else 0.00095f)
+            p.color = withAlpha(
+                if (i % 4 == 0) goldBright else if (i % 2 == 0) gold else cyan,
+                if (i % 4 == 0) 72 else 30
+            )
+            canvas.drawLine(inner.x, inner.y, outer.x, outer.y, p)
+        }
+
+        // 6) 24개 외곽 기하 노드 + 교차 메쉬
+        val nodes = ArrayList<PointF>(CelestialLayerSpec.sacredNodeCount)
+        for (i in 0 until CelestialLayerSpec.sacredNodeCount) {
+            nodes += polar(cx, cy, r * 0.565f, i * 360f / CelestialLayerSpec.sacredNodeCount)
+        }
+
+        p.style = Paint.Style.STROKE
+        for (i in nodes.indices) {
+            val a = nodes[i]
+            val b = nodes[(i + 5) % nodes.size]
+            val d = nodes[(i + 9) % nodes.size]
+
+            p.strokeWidth = maxOf(0.48f, r * 0.0009f)
+            p.color = withAlpha(if (i % 2 == 0) goldBright else gold, 38)
+            canvas.drawLine(a.x, a.y, b.x, b.y, p)
+
+            if (i % 2 == 0) {
+                p.color = withAlpha(cyan, 22)
+                canvas.drawLine(a.x, a.y, d.x, d.y, p)
+            }
+        }
+
+        for (i in nodes.indices) {
+            val q = nodes[i]
+            val major = i % 3 == 0
+            val nodeR = r * if (major) 0.0085f else 0.0040f
+
+            // 정적인 3단 노드
+            p.style = Paint.Style.FILL
+            p.color = withAlpha(if (major) goldBright else gold, if (major) 28 else 18)
+            canvas.drawCircle(q.x, q.y, nodeR * 3.4f, p)
+            p.color = withAlpha(if (major) goldBright else cyan, if (major) 90 else 54)
+            canvas.drawCircle(q.x, q.y, nodeR * 1.8f, p)
+            p.color = withAlpha(white, if (major) 235 else 150)
+            canvas.drawCircle(q.x, q.y, nodeR * 0.52f, p)
+        }
+
+        // 7) 사방위 다이아/삼각 보석 프레임
+        for (angle in floatArrayOf(0f, 90f, 180f, 270f)) {
+            val q = polar(cx, cy, r * 0.46f, angle)
+            drawDiamond(canvas, q.x, q.y, r * 0.032f, goldBright, 0.72f)
+            drawRegularPolygon(
+                canvas,
+                q.x,
+                q.y,
+                r * 0.020f,
+                3,
+                angle,
+                cyanBright,
+                maxOf(0.65f, r * 0.0011f),
+                0.38f
+            )
+        }
+
+        // 8) 중심 크리스털 다중 구조
+        drawDiamond(canvas, cx, cy, r * 0.182f, goldBright, 0.42f)
+        drawRegularPolygon(canvas, cx, cy, r * 0.150f, 8, 22.5f, cyan, maxOf(0.7f, r * 0.0013f), 0.34f)
+        drawStar(canvas, cx, cy, r * 0.142f, r * 0.060f, 8, 22.5f, white, maxOf(0.65f, r * 0.0011f), 0.28f)
+    }
+
+    private fun drawReferenceOrbitHalo(canvas: Canvas, cx: Float, cy: Float, r: Float) {
+        // Layer 7 — 분해도 기준 청백색 궤도 곡선.
+        // 네 개의 타원은 서로 다른 각도에 고정되어 움직이지 않는다.
+        val rxValues = floatArrayOf(0.610f, 0.592f, 0.574f, 0.556f)
+        val ryValues = floatArrayOf(0.205f, 0.238f, 0.185f, 0.218f)
+
+        for (i in CelestialLayerSpec.orbitRotations.indices) {
+            val rect = RectF(
+                cx - r * rxValues[i],
+                cy - r * ryValues[i],
+                cx + r * rxValues[i],
+                cy + r * ryValues[i]
+            )
+
+            canvas.save()
+            canvas.rotate(CelestialLayerSpec.orbitRotations[i], cx, cy)
+
+            // 넓고 아주 옅은 halo
+            p.style = Paint.Style.STROKE
+            p.strokeWidth = maxOf(1.8f, r * 0.010f)
+            p.color = withAlpha(cyanBright, 18)
+            canvas.drawOval(rect, p)
+
+            // 중간 발광
+            p.strokeWidth = maxOf(1.2f, r * 0.0052f)
+            p.color = withAlpha(cyanBright, 52)
+            canvas.drawOval(rect, p)
+
+            // 선명한 코어 라인
+            p.strokeWidth = maxOf(0.9f, r * 0.0024f)
+            p.color = withAlpha(if (i % 2 == 0) cyanBright else white, 220)
+            canvas.drawOval(rect, p)
+
+            // 금색 미세 보조선
+            p.strokeWidth = maxOf(0.55f, r * 0.00095f)
+            p.color = withAlpha(goldBright, 36)
+            canvas.drawOval(
+                RectF(
+                    rect.left + r * 0.010f,
+                    rect.top + r * 0.010f,
+                    rect.right - r * 0.010f,
+                    rect.bottom - r * 0.010f
+                ),
+                p
+            )
+
+            canvas.restore()
         }
     }
 
@@ -1117,34 +1273,73 @@ class StellarSanctuaryView(context: Context) : View(context) {
     }
 
     private fun drawOrbits(canvas: Canvas, cx: Float, cy: Float, r: Float) {
-        val configs = arrayOf(
-            floatArrayOf(0f, 0.61f, 0.22f),
-            floatArrayOf(36f, 0.60f, 0.235f),
-            floatArrayOf(72f, 0.59f, 0.205f),
-            floatArrayOf(108f, 0.56f, 0.17f),
-            floatArrayOf(144f, 0.56f, 0.17f)
-        )
-        for ((i, c) in configs.withIndex()) {
-            canvas.save()
-            canvas.rotate(c[0], cx, cy)
-            val rect = RectF(cx - r * c[1], cy - r * c[2], cx + r * c[1], cy + r * c[2])
-            val col = if (i % 2 == 0) cyanBright else goldBright
+        // Layer 7 노드 시스템 — 메인 8개 + 보조 8개.
+        // 모든 노드는 정적인 core/ring/halo 구조로 그린다.
+
+        for ((index, angle) in CelestialLayerSpec.primaryOrbitNodeAngles.withIndex()) {
+            val q = polar(cx, cy, r * 0.575f, angle)
+            val nodeR = r * if (index % 2 == 0) 0.0120f else 0.0100f
+            val color = if (index % 2 == 0) cyanBright else white
+
+            // halo
+            p.style = Paint.Style.FILL
+            p.color = withAlpha(color, 22)
+            canvas.drawCircle(q.x, q.y, nodeR * 4.2f, p)
+            p.color = withAlpha(cyanBright, 46)
+            canvas.drawCircle(q.x, q.y, nodeR * 2.5f, p)
+
+            // thin outer ring
             p.style = Paint.Style.STROKE
-            p.color = withAlpha(col, 30)
-            p.strokeWidth = r * 0.011f
-            canvas.drawOval(rect, p)
-            p.color = withAlpha(col, if (i < 3) 215 else 105)
-            p.strokeWidth = if (i < 3) r * 0.004f else r * 0.002f
-            canvas.drawOval(rect, p)
-            canvas.restore()
+            p.strokeWidth = maxOf(0.8f, r * 0.0015f)
+            p.color = withAlpha(if (index % 2 == 0) cyanBright else goldBright, 180)
+            canvas.drawCircle(q.x, q.y, nodeR * 1.55f, p)
+
+            // core
+            p.style = Paint.Style.FILL
+            p.color = withAlpha(color, 245)
+            canvas.drawCircle(q.x, q.y, nodeR, p)
+            p.color = white
+            canvas.drawCircle(q.x, q.y, nodeR * 0.30f, p)
+
+            // 작은 사방위 플레어
+            p.style = Paint.Style.STROKE
+            p.strokeWidth = maxOf(0.55f, r * 0.0010f)
+            p.color = withAlpha(color, 120)
+            canvas.drawLine(q.x - nodeR * 2.2f, q.y, q.x + nodeR * 2.2f, q.y, p)
+            canvas.drawLine(q.x, q.y - nodeR * 2.2f, q.x, q.y + nodeR * 2.2f, p)
         }
 
-        val nodeAngles = floatArrayOf(0f, 45f, 90f, 135f, 180f, 225f, 270f, 315f)
-        for ((i, a) in nodeAngles.withIndex()) {
-            val rr = if (i % 2 == 0) r * 0.60f else r * 0.51f
-            val q = polar(cx, cy, rr, a)
-            drawGlowDot(canvas, q.x, q.y, if (i % 2 == 0) r * 0.020f else r * 0.015f,
-                if (i % 2 == 0) cyanBright else goldBright, 0.95f)
+        for ((index, angle) in CelestialLayerSpec.secondaryOrbitNodeAngles.withIndex()) {
+            val q = polar(cx, cy, r * 0.485f, angle)
+            val nodeR = r * 0.0052f
+            val color = if (index % 2 == 0) cyan else goldBright
+
+            p.style = Paint.Style.FILL
+            p.color = withAlpha(color, 18)
+            canvas.drawCircle(q.x, q.y, nodeR * 3.2f, p)
+
+            p.style = Paint.Style.STROKE
+            p.strokeWidth = maxOf(0.55f, r * 0.0010f)
+            p.color = withAlpha(color, 105)
+            canvas.drawCircle(q.x, q.y, nodeR * 1.7f, p)
+
+            p.style = Paint.Style.FILL
+            p.color = withAlpha(white, 195)
+            canvas.drawCircle(q.x, q.y, nodeR * 0.72f, p)
+        }
+
+        // 궤도 교차부를 강조하는 작은 중심 근접 노드 4개
+        for (angle in floatArrayOf(0f, 90f, 180f, 270f)) {
+            val q = polar(cx, cy, r * 0.315f, angle)
+            val rr = r * 0.0065f
+
+            p.style = Paint.Style.FILL
+            p.color = withAlpha(goldBright, 24)
+            canvas.drawCircle(q.x, q.y, rr * 3.2f, p)
+            p.color = withAlpha(cyanBright, 105)
+            canvas.drawCircle(q.x, q.y, rr * 1.6f, p)
+            p.color = white
+            canvas.drawCircle(q.x, q.y, rr * 0.45f, p)
         }
     }
 
