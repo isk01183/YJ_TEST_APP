@@ -1,85 +1,115 @@
 package com.example.chargingapp
 
-import android.content.BroadcastReceiver
+import android.app.Activity
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.os.Build
+import android.graphics.Color
 import android.os.Bundle
-import android.view.View
-import android.view.WindowInsets
-import android.view.WindowInsetsController
-import androidx.appcompat.app.AppCompatActivity
+import android.view.ViewGroup
+import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.TextView
 
 /**
- * Galaxy Tab 안정성 확인용 메인 화면.
+ * Ultra V6 launcher.
  *
- * 앱을 직접 실행했을 때 서비스/전체화면 알림/권한 요청을 시작하지 않고
- * 울트라 Canvas 마법진 렌더러와 배터리 정보만 표시한다.
+ * Known-Good Runtime을 유지하면서 앱 실행 즉시 마법진을 표시한다.
+ * 서비스/BootReceiver/Full-screen notification은 사용하지 않는다.
+ * 런타임 예외가 발생하면 다음 실행 때 저장된 crash report를 보여준다.
  */
-class MainActivity : AppCompatActivity() {
+class MainActivity : Activity() {
 
-    private lateinit var magicView: StellarSanctuaryView
+    override fun onCreate(savedInstanceState: Bundle?) {
+        CrashReportStore.install(this)
+        super.onCreate(savedInstanceState)
 
-    private val batteryReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            if (intent.action == Intent.ACTION_BATTERY_CHANGED) {
-                magicView.updateFromBatteryIntent(intent)
-            }
+        val previousCrash = CrashReportStore.read(this)
+        if (previousCrash != null) {
+            showCrashReport(previousCrash)
+        } else {
+            runMagicRenderer()
         }
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        hideSystemUi()
-
-        magicView = StellarSanctuaryView(this)
-        setContentView(magicView)
+    private fun runMagicRenderer() {
+        val view = StellarSanctuaryView(this)
 
         registerReceiver(
             null,
             IntentFilter(Intent.ACTION_BATTERY_CHANGED)
-        )?.let(magicView::updateFromBatteryIntent)
+        )?.let(view::updateFromBatteryIntent)
 
-        val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(
-                batteryReceiver,
-                filter,
-                Context.RECEIVER_NOT_EXPORTED
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            registerReceiver(batteryReceiver, filter)
-        }
+        setContentView(view)
     }
 
-    private fun hideSystemUi() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            window.setDecorFitsSystemWindows(false)
-            window.insetsController?.let {
-                it.hide(WindowInsets.Type.systemBars())
-                it.systemBarsBehavior =
-                    WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+    private fun showCrashReport(report: String) {
+        val column = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(28), dp(20), dp(28))
+            setBackgroundColor(Color.rgb(8, 10, 14))
+        }
+
+        column.addView(TextView(this).apply {
+            text = "크래시 원인을 잡았습니다"
+            setTextColor(Color.rgb(255, 205, 120))
+            textSize = 24f
+            setPadding(0, 0, 0, dp(16))
+        }, matchWrap())
+
+        column.addView(Button(this).apply {
+            text = "오류 내용 클립보드에 복사"
+            setOnClickListener {
+                val clipboard =
+                    getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                clipboard.setPrimaryClip(
+                    ClipData.newPlainText("YJ_TEST_APP crash", report)
+                )
+                text = "복사됨"
             }
-        } else {
-            @Suppress("DEPRECATION")
-            window.decorView.systemUiVisibility =
-                View.SYSTEM_UI_FLAG_FULLSCREEN or
-                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
-                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
-                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
-                    View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
-                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-        }
+        }, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            dp(54)
+        ))
+
+        column.addView(Button(this).apply {
+            text = "로그 삭제 후 마법진 다시 실행"
+            setOnClickListener {
+                CrashReportStore.clear(this@MainActivity)
+                runMagicRenderer()
+            }
+        }, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            dp(54)
+        ).apply {
+            topMargin = dp(10)
+        })
+
+        column.addView(TextView(this).apply {
+            text = report
+            setTextColor(Color.WHITE)
+            textSize = 12f
+            typeface = android.graphics.Typeface.MONOSPACE
+            setTextIsSelectable(true)
+            setPadding(0, dp(20), 0, dp(20))
+        }, matchWrap())
+
+        setContentView(
+            ScrollView(this).apply {
+                setBackgroundColor(Color.rgb(8, 10, 14))
+                addView(column)
+            }
+        )
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        try {
-            unregisterReceiver(batteryReceiver)
-        } catch (_: Exception) {
-        }
-    }
+    private fun matchWrap() = LinearLayout.LayoutParams(
+        ViewGroup.LayoutParams.MATCH_PARENT,
+        ViewGroup.LayoutParams.WRAP_CONTENT
+    )
+
+    private fun dp(value: Int): Int =
+        (value * resources.displayMetrics.density).toInt()
 }
