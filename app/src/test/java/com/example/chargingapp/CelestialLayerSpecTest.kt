@@ -10,7 +10,7 @@ class CelestialLayerSpecTest {
     @Test
     fun layer6UsesDenseStaticSacredGeometry() {
         assertFalse(AnimationLayerPolicy.animateSacredGeometry)
-        assertTrue(CelestialLayerSpec.sacredPolygonSides.containsAll(listOf(6, 8, 12, 16)))
+        assertTrue(CelestialLayerSpec.sacredPolygonSides.toList().containsAll(listOf(6, 8, 12, 16)))
         assertEquals(32, CelestialLayerSpec.sacredRayCount)
         assertEquals(24, CelestialLayerSpec.sacredNodeCount)
         assertEquals(3, CelestialLayerSpec.guideEllipseRotations.size)
