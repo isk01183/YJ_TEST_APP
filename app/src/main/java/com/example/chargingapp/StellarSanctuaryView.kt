@@ -2,6 +2,7 @@ package com.example.chargingapp
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -12,11 +13,13 @@ import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
 import android.os.BatteryManager
+import android.os.SystemClock
 import android.view.View
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.min
+import kotlin.math.roundToInt
 import kotlin.math.sin
 
 /**
@@ -49,9 +52,73 @@ class StellarSanctuaryView(context: Context) : View(context) {
     private var batteryHealthText = "양호"
     private var connectionText = "연결되지 않음"
 
+    private var displayedBatteryPercent = batteryPercent.toFloat()
+    private var hasBatteryReading = false
+
+    private var animationStartNanos = SystemClock.elapsedRealtimeNanos()
+    private var lastFrameNanos = animationStartNanos
+    private var animationActive = false
+    private var dynamicGlowMultiplier = 1f
+
+    private var staticSpaceLayer: Bitmap? = null
+
     init {
         setBackgroundColor(bg)
         isClickable = true
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        animationActive = true
+        animationStartNanos = SystemClock.elapsedRealtimeNanos()
+        lastFrameNanos = animationStartNanos
+        if (staticSpaceLayer == null && width > 0 && height > 0) {
+            rebuildStaticSpaceLayer(width, height)
+        }
+        postInvalidateOnAnimation()
+    }
+
+    override fun onDetachedFromWindow() {
+        animationActive = false
+        staticSpaceLayer?.recycle()
+        staticSpaceLayer = null
+        super.onDetachedFromWindow()
+    }
+
+    override fun onWindowVisibilityChanged(visibility: Int) {
+        super.onWindowVisibilityChanged(visibility)
+        animationActive = visibility == View.VISIBLE
+        if (animationActive) {
+            lastFrameNanos = SystemClock.elapsedRealtimeNanos()
+            postInvalidateOnAnimation()
+        }
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        rebuildStaticSpaceLayer(w, h)
+    }
+
+    private fun rebuildStaticSpaceLayer(w: Int, h: Int) {
+        staticSpaceLayer?.recycle()
+        staticSpaceLayer = null
+        if (w <= 0 || h <= 0) return
+
+        try {
+            val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+            val cacheCanvas = Canvas(bitmap)
+            cacheCanvas.drawColor(bg)
+
+            val savedGlow = dynamicGlowMultiplier
+            dynamicGlowMultiplier = 1f
+            drawBackdrop(cacheCanvas, w.toFloat(), h.toFloat())
+            dynamicGlowMultiplier = savedGlow
+
+            staticSpaceLayer = bitmap
+        } catch (_: OutOfMemoryError) {
+            // 고해상도 기기에서 캐시 생성이 부담되면 실시간 배경 렌더링으로 안전하게 폴백한다.
+            staticSpaceLayer = null
+        }
     }
 
     fun updateFromBatteryIntent(intent: Intent) {
@@ -59,6 +126,10 @@ class StellarSanctuaryView(context: Context) : View(context) {
         val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
         if (level >= 0 && scale > 0) {
             batteryPercent = ((level * 100f) / scale).toInt().coerceIn(0, 100)
+            if (!hasBatteryReading) {
+                displayedBatteryPercent = batteryPercent.toFloat()
+                hasBatteryReading = true
+            }
         }
         batteryTempC = intent.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 325) / 10f
         batteryHealthText = when (
@@ -87,17 +158,68 @@ class StellarSanctuaryView(context: Context) : View(context) {
         val h = height.toFloat()
         if (w <= 0f || h <= 0f) return
 
+        val now = SystemClock.elapsedRealtimeNanos()
+        val elapsedSeconds = ((now - animationStartNanos) / 1_000_000_000.0).toFloat()
+        val deltaSeconds = ((now - lastFrameNanos) / 1_000_000_000.0)
+            .toFloat()
+            .coerceIn(0f, 0.05f)
+        lastFrameNanos = now
+
+        displayedBatteryPercent = AnimationMath.damp(
+            displayedBatteryPercent,
+            batteryPercent.toFloat(),
+            deltaSeconds,
+            7f
+        )
+
         canvas.drawColor(bg)
-        drawBackdrop(canvas, w, h)
+        val cached = staticSpaceLayer
+        if (cached != null && !cached.isRecycled && cached.width == width && cached.height == height) {
+            canvas.drawBitmap(cached, 0f, 0f, null)
+        } else {
+            drawBackdrop(canvas, w, h)
+        }
+
         drawHeader(canvas, w, h)
 
         val cx = w * 0.5f
         val cy = h * 0.455f
         val r = min(w * 0.46f, h * 0.31f)
 
-        drawCircleSystem(canvas, cx, cy, r)
-        drawCenterPanel(canvas, cx, cy, r)
+        val outerRuneRotation = AnimationMath.wrapDegrees(elapsedSeconds * 2.4f)
+        val innerRuneRotation = -AnimationMath.wrapDegrees(elapsedSeconds * 3.6f)
+        val orbitRotation = AnimationMath.wrapDegrees(elapsedSeconds * 7.5f)
+        val pulse = AnimationMath.pulse01(elapsedSeconds, 0.34f, 0.08f)
+        val shimmer = AnimationMath.pulse01(elapsedSeconds, 0.82f, 0.31f)
+
+        dynamicGlowMultiplier = 0.84f + shimmer * 0.16f
+
+        drawCircleSystem(
+            canvas = canvas,
+            cx = cx,
+            cy = cy,
+            r = r,
+            outerRuneRotation = outerRuneRotation,
+            innerRuneRotation = innerRuneRotation,
+            orbitRotation = orbitRotation,
+            pulse = pulse
+        )
+        drawCenterPanel(
+            canvas,
+            cx,
+            cy,
+            r,
+            displayedBatteryPercent,
+            pulse
+        )
+
+        dynamicGlowMultiplier = 1f
         drawFooter(canvas, w, h)
+
+        if (animationActive && windowVisibility == View.VISIBLE) {
+            // 60fps 부근으로 제한해 120Hz 기기에서도 발열/배터리 사용량을 억제한다.
+            postInvalidateDelayed(16L)
+        }
     }
 
     private fun drawBackdrop(canvas: Canvas, w: Float, h: Float) {
@@ -292,7 +414,16 @@ class StellarSanctuaryView(context: Context) : View(context) {
         drawStarBurst(canvas, w * 0.75f, h * 0.145f, w * 0.006f, gold, 0.65f)
     }
 
-    private fun drawCircleSystem(canvas: Canvas, cx: Float, cy: Float, r: Float) {
+    private fun drawCircleSystem(
+        canvas: Canvas,
+        cx: Float,
+        cy: Float,
+        r: Float,
+        outerRuneRotation: Float,
+        innerRuneRotation: Float,
+        orbitRotation: Float,
+        pulse: Float
+    ) {
         // 중심 원 전체를 감싸는 광원층. 기존 선 구조를 덮지 않도록 낮은 알파로만 사용한다.
         p.style = Paint.Style.FILL
         p.shader = RadialGradient(
@@ -323,18 +454,28 @@ class StellarSanctuaryView(context: Context) : View(context) {
         drawTickRing(canvas, cx, cy, r * 0.855f, r * 0.036f, 144, 12)
         drawTickRing(canvas, cx, cy, r * 0.725f, r * 0.030f, 120, 10)
 
-        // 이중 룬 밴드 + 발광 점 밴드
+        // 서로 반대 방향으로 회전하는 룬 밴드.
+        canvas.save()
+        canvas.rotate(outerRuneRotation, cx, cy)
         drawRuneBand(canvas, cx, cy, r * 0.905f, 84, goldBright, 0)
-        drawRuneBand(canvas, cx, cy, r * 0.777f, 84, cyan, 1)
-        drawRuneBand(canvas, cx, cy, r * 0.700f, 88, gold, 2)
         drawMicroGlyphBand(canvas, cx, cy, r * 0.944f, 168)
         for (i in 0 until 288) {
             val q = polar(cx, cy, r * 0.835f, i * 1.25f)
             val rr = if (i % 12 == 0) r * 0.0048f else r * 0.0024f
             p.style = Paint.Style.FILL
-            p.color = withAlpha(if (i % 12 == 0) goldBright else cyanBright, if (i % 12 == 0) 205 else 100)
+            p.color = withAlpha(
+                if (i % 12 == 0) goldBright else cyanBright,
+                if (i % 12 == 0) 205 else 100
+            )
             canvas.drawCircle(q.x, q.y, rr, p)
         }
+        canvas.restore()
+
+        canvas.save()
+        canvas.rotate(innerRuneRotation, cx, cy)
+        drawRuneBand(canvas, cx, cy, r * 0.777f, 84, cyan, 1)
+        drawRuneBand(canvas, cx, cy, r * 0.700f, 88, gold, 2)
+        canvas.restore()
 
         // 축선 및 외곽 마커
         p.style = Paint.Style.STROKE
@@ -373,21 +514,44 @@ class StellarSanctuaryView(context: Context) : View(context) {
         drawOuterCrownSpikes(canvas, cx, cy, r)
         drawReferenceCardinalFlares(canvas, cx, cy, r)
         drawReferenceCrescentMarkers(canvas, cx, cy, r)
+
+        canvas.save()
+        canvas.rotate(outerRuneRotation * 0.72f, cx, cy)
         drawMajorRuneBand(canvas, cx, cy, r * 0.935f, 40)
+        canvas.restore()
+
         drawAstrolabeMedallions(canvas, cx, cy, r)
         drawDecorativeArcs(canvas, cx, cy, r)
         drawLunarMarkers(canvas, cx, cy, r)
         drawConstellationMesh(canvas, cx, cy, r)
         drawReferenceSacredGeometry(canvas, cx, cy, r)
+
+        canvas.save()
+        canvas.rotate(innerRuneRotation * 0.42f, cx, cy)
         drawCelestialPetalLattice(canvas, cx, cy, r)
+        canvas.restore()
+
         drawAuxiliarySigils(canvas, cx, cy, r)
         drawMicroSigils(canvas, cx, cy, r)
         drawInnerInscriptionHalo(canvas, cx, cy, r)
+
+        canvas.save()
+        canvas.rotate(orbitRotation, cx, cy)
         drawReferenceOrbitHalo(canvas, cx, cy, r)
+        canvas.restore()
+
+        canvas.save()
+        canvas.rotate(-orbitRotation * 0.73f, cx, cy)
         drawOrbits(canvas, cx, cy, r)
+        canvas.restore()
+
+        val coreScale = 0.992f + pulse * 0.016f
+        canvas.save()
+        canvas.scale(coreScale, coreScale, cx, cy)
         drawCore(canvas, cx, cy, r)
         drawCrystalCoreOverlay(canvas, cx, cy, r)
         drawReferenceCoreHalo(canvas, cx, cy, r)
+        canvas.restore()
     }
 
     private fun drawTickRing(canvas: Canvas, cx: Float, cy: Float, radius: Float, length: Float, count: Int, majorEvery: Int) {
@@ -1044,16 +1208,36 @@ class StellarSanctuaryView(context: Context) : View(context) {
         }
     }
 
-    private fun drawCenterPanel(canvas: Canvas, cx: Float, cy: Float, r: Float) {
+    private fun drawCenterPanel(
+        canvas: Canvas,
+        cx: Float,
+        cy: Float,
+        r: Float,
+        displayPercent: Float,
+        pulse: Float
+    ) {
+        val panelRadius = r * (0.203f + pulse * 0.003f)
+
+        drawGlowRing(
+            canvas,
+            cx,
+            cy,
+            panelRadius * 1.055f,
+            if (pulse > 0.5f) goldBright else cyanBright,
+            r * 0.0014f,
+            0.20f + pulse * 0.16f
+        )
+
         p.style = Paint.Style.FILL
-        p.color = Color.argb(205, 3, 9, 15)
-        canvas.drawCircle(cx, cy, r * 0.205f, p)
+        p.color = Color.argb(215, 3, 9, 15)
+        canvas.drawCircle(cx, cy, panelRadius, p)
 
         textPaint.color = goldBright
         textPaint.textSize = r * 0.225f
         textPaint.typeface = Typeface.create("sans", Typeface.NORMAL)
         textPaint.setShadowLayer(r * 0.035f, 0f, 0f, Color.argb(145, 255, 230, 160))
-        canvas.drawText(batteryPercent.toString(), cx - r * 0.020f, cy + r * 0.030f, textPaint)
+        val shownPercent = displayPercent.roundToInt().coerceIn(0, 100)
+        canvas.drawText(shownPercent.toString(), cx - r * 0.020f, cy + r * 0.030f, textPaint)
         textPaint.clearShadowLayer()
         textPaint.textSize = r * 0.070f
         canvas.drawText("%", cx + r * 0.165f, cy + r * 0.035f, textPaint)
@@ -1108,44 +1292,44 @@ class StellarSanctuaryView(context: Context) : View(context) {
     }
 
     private fun drawGlowRing(canvas: Canvas, cx: Float, cy: Float, r: Float, color: Int, stroke: Float, alpha: Float) {
-        // Galaxy Tab 고해상도에서 BlurMaskFilter + software layer 조합을 피한다.
-        // 여러 개의 반투명 스트로크를 겹쳐 유사한 Glow를 만든다.
+        // Blur 없이 안전한 다중 반투명 스트로크 Glow.
+        val effectiveAlpha = (alpha * dynamicGlowMultiplier).coerceIn(0f, 1f)
         p.style = Paint.Style.STROKE
 
         p.strokeWidth = maxOf(1f, stroke * 7.5f)
-        p.color = withAlpha(color, (alpha * 18).toInt())
+        p.color = withAlpha(color, (effectiveAlpha * 18).toInt())
         canvas.drawCircle(cx, cy, r, p)
 
         p.strokeWidth = maxOf(1f, stroke * 4.5f)
-        p.color = withAlpha(color, (alpha * 30).toInt())
+        p.color = withAlpha(color, (effectiveAlpha * 30).toInt())
         canvas.drawCircle(cx, cy, r, p)
 
         p.strokeWidth = maxOf(1f, stroke * 2.4f)
-        p.color = withAlpha(color, (alpha * 62).toInt())
+        p.color = withAlpha(color, (effectiveAlpha * 62).toInt())
         canvas.drawCircle(cx, cy, r, p)
 
         p.strokeWidth = maxOf(0.8f, stroke)
-        p.color = withAlpha(color, (alpha * 255).toInt())
+        p.color = withAlpha(color, (effectiveAlpha * 255).toInt())
         canvas.drawCircle(cx, cy, r, p)
     }
 
     private fun drawGlowDot(canvas: Canvas, x: Float, y: Float, rr: Float, color: Int, alpha: Float) {
-        // BlurMaskFilter 대신 다층 원으로 Glow를 구성해 메모리 할당을 최소화한다.
+        val effectiveAlpha = (alpha * dynamicGlowMultiplier).coerceIn(0f, 1f)
         p.style = Paint.Style.FILL
 
-        p.color = withAlpha(color, (alpha * 20).toInt())
+        p.color = withAlpha(color, (effectiveAlpha * 20).toInt())
         canvas.drawCircle(x, y, rr * 4.0f, p)
 
-        p.color = withAlpha(color, (alpha * 42).toInt())
+        p.color = withAlpha(color, (effectiveAlpha * 42).toInt())
         canvas.drawCircle(x, y, rr * 2.6f, p)
 
-        p.color = withAlpha(color, (alpha * 95).toInt())
+        p.color = withAlpha(color, (effectiveAlpha * 95).toInt())
         canvas.drawCircle(x, y, rr * 1.65f, p)
 
-        p.color = withAlpha(color, (alpha * 255).toInt())
+        p.color = withAlpha(color, (effectiveAlpha * 255).toInt())
         canvas.drawCircle(x, y, rr, p)
 
-        p.color = withAlpha(white, (alpha * 245).toInt())
+        p.color = withAlpha(white, (effectiveAlpha * 245).toInt())
         canvas.drawCircle(x, y, maxOf(0.5f, rr * 0.28f), p)
     }
 
