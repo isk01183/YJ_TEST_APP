@@ -1,6 +1,5 @@
 name: Build APK
 
-# main 브랜치에 push 하거나, Actions 탭에서 수동 실행(Run workflow) 하면 자동으로 빌드됩니다.
 on:
   pull_request:
     branches: [ main ]
@@ -21,14 +20,13 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # 러너에 내장된 Android SDK를 사용합니다 (GitHub ubuntu-latest 이미지에 기본 포함됨).
       - name: Gradle 8.6 설치
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.6'
 
-      - name: 디버그 APK 빌드
-        run: gradle assembleDebug --stacktrace
+      - name: 단위 테스트 + 디버그 APK 빌드
+        run: gradle testDebugUnitTest assembleDebug --stacktrace
 
       - name: APK를 다운로드 가능한 아티팩트로 업로드
         uses: actions/upload-artifact@v4
